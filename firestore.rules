@@ -1,0 +1,128 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+    
+    // Check if user is an authenticated admin
+    function isAdmin() {
+      return request.auth != null && 
+             exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+    
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // ============================================
+    // ADMIN COLLECTION
+    // ============================================
+    
+    // Admins collection - stores user IDs of admin users
+    // Only existing admins can read/write this collection
+    match /admins/{adminId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // ============================================
+    // TEACHERS COLLECTION
+    // ============================================
+    
+    match /teachers/{teacherId} {
+      // Anyone can read teacher data
+      allow read: if true;
+      
+      // Only admins can create, update, or delete teachers
+      allow create, update, delete: if isAdmin();
+      
+      // Validate teacher data structure on create/update
+      allow create, update: if request.resource.data.keys().hasAll(['name', 'subjects', 'qualifications', 'photoUrl', 'joinDate']) &&
+                               request.resource.data.name is string &&
+                               request.resource.data.name.size() > 0 &&
+                               request.resource.data.subjects is list &&
+                               request.resource.data.subjects.size() > 0 &&
+                               request.resource.data.qualifications is string &&
+                               request.resource.data.photoUrl is string &&
+                               request.resource.data.joinDate is string;
+    }
+    
+    // ============================================
+    // FEEDBACK COLLECTION
+    // ============================================
+    
+    match /feedback/{feedbackId} {
+      // Anyone can read feedback
+      allow read: if true;
+      
+      // Anyone can create feedback (public reviews)
+      allow create: if request.resource.data.keys().hasAll(['teacherId', 'name', 'rating', 'comment', 'date']) &&
+                       request.resource.data.teacherId is string &&
+                       request.resource.data.name is string &&
+                       request.resource.data.name.size() > 0 &&
+                       request.resource.data.rating is number &&
+                       request.resource.data.rating >= 1 &&
+                       request.resource.data.rating <= 5 &&
+                       request.resource.data.comment is string &&
+                       request.resource.data.comment.size() > 0 &&
+                       request.resource.data.comment.size() <= 1000 &&
+                       request.resource.data.date is string;
+      
+      // Only admins can update or delete feedback
+      allow update, delete: if isAdmin();
+    }
+    
+    // ============================================
+    // ATTENDANCE COLLECTION
+    // ============================================
+    
+    match /attendance/{recordId} {
+      // Anyone can read attendance records
+      allow read: if true;
+      
+      // Only admins can create, update, or delete attendance
+      allow create, update, delete: if isAdmin();
+      
+      // Validate attendance data
+      allow create, update: if request.resource.data.keys().hasAll(['teacherId', 'date', 'status']) &&
+                               request.resource.data.teacherId is string &&
+                               request.resource.data.date is string &&
+                               request.resource.data.status in ['Present', 'Absent', 'Late'];
+    }
+    
+    // ============================================
+    // LESSON PLANS COLLECTION
+    // ============================================
+    
+    match /lessonPlans/{planId} {
+      // Anyone can read lesson plans
+      allow read: if true;
+      
+      // Only admins can create, update, or delete lesson plans
+      allow create, update, delete: if isAdmin();
+      
+      // Validate lesson plan data
+      allow create, update: if request.resource.data.keys().hasAll(['teacherId', 'title', 'url', 'date']) &&
+                               request.resource.data.teacherId is string &&
+                               request.resource.data.title is string &&
+                               request.resource.data.title.size() > 0 &&
+                               request.resource.data.url is string &&
+                               request.resource.data.date is string;
+    }
+    
+    // ============================================
+    // SUBJECTS COLLECTION (if used)
+    // ============================================
+    
+    match /subjects/{subjectId} {
+      // Anyone can read subjects
+      allow read: if true;
+      
+      // Only admins can create, update, or delete subjects
+      allow create, update, delete: if isAdmin();
+    }
+  }
+}
