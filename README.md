@@ -2,6 +2,12 @@
 
 A comprehensive web application designed for school boards and leaders to track, analyze, and improve teacher performance. This system provides a dynamic overview of a teacher's professional journey, facilitating better management and professional development.
 
+# admin login
+
+* Email- admin@school.com
+
+* Password - password123
+
 https://teacher-performance-and-development.vercel.app/
 
 ---
